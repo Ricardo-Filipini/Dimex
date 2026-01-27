@@ -1,0 +1,419 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Portal DIMEX | Banco Central do Brasil</title>
+    
+    <!-- React & ReactDOM -->
+    <script crossorigin src="https://unpkg.com/react@18/umd/react.development.js"></script>
+    <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
+    
+    <!-- Babel para JSX -->
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+    
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    
+    <!-- Fontes -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700&display=swap" rel="stylesheet">
+
+    <style>
+        body { font-family: 'Inter', sans-serif; }
+        .animate-fade-in { animation: fadeIn 0.5s ease-out; }
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        .glass-panel {
+            background: rgba(255, 255, 255, 0.9);
+            backdrop-filter: blur(10px);
+        }
+    </style>
+</head>
+<body class="bg-slate-50 text-slate-800">
+
+    <div id="root"></div>
+
+    <script type="text/babel">
+        const { useState, useEffect } = React;
+
+        // --- Ícones SVG ---
+        const Icons = {
+            Building: () => <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="4" y="2" width="16" height="20" rx="2" ry="2"></rect><line x1="9" y1="22" x2="9" y2="22.01"></line><line x1="15" y1="22" x2="15" y2="22.01"></line><line x1="12" y1="22" x2="12" y2="22.01"></line><line x1="12" y1="2" x2="12" y2="22"></line><line x1="4" y1="10" x2="20" y2="10"></line><line x1="4" y1="14" x2="20" y2="14"></line></svg>,
+            Database: () => <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><ellipse cx="12" cy="5" rx="9" ry="3"></ellipse><path d="M21 12c0 1.66-4 3-9 3s-9-1.34-9-3"></path><path d="M3 5v14c0 1.66 4 3 9 3s9-1.34 9-3V5"></path></svg>,
+            Cpu: () => <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="4" y="4" width="16" height="16" rx="2" ry="2"></rect><rect x="9" y="9" width="6" height="6"></rect><line x1="9" y1="1" x2="9" y2="4"></line><line x1="15" y1="1" x2="15" y2="4"></line><line x1="9" y1="20" x2="9" y2="23"></line><line x1="15" y1="20" x2="15" y2="23"></line><line x1="20" y1="9" x2="23" y2="9"></line><line x1="20" y1="14" x2="23" y2="14"></line><line x1="1" y1="9" x2="4" y2="9"></line><line x1="1" y1="14" x2="4" y2="14"></line></svg>,
+            Users: () => <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path><circle cx="9" cy="7" r="4"></circle><path d="M23 21v-2a4 4 0 0 0-3-3.87"></path><path d="M16 3.13a4 4 0 0 1 0 7.75"></path></svg>,
+            GitMerge: () => <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="18" cy="18" r="3"></circle><circle cx="6" cy="6" r="3"></circle><path d="M6 21V9a9 9 0 0 0 9 9"></path></svg>,
+            Activity: () => <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"></polyline></svg>,
+            Lock: () => <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect><path d="M7 11V7a5 5 0 0 1 10 0v4"></path></svg>,
+            ArrowRight: () => <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="5" y1="12" x2="19" y2="12"></line><polyline points="12 5 19 12 12 19"></polyline></svg>,
+            CheckCircle: () => <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path><polyline points="22 4 12 14.01 9 11.01"></polyline></svg>
+        };
+
+        // --- Componentes ---
+
+        const NavButton = ({ active, onClick, icon: Icon, label }) => (
+            <button 
+                onClick={onClick}
+                className={`flex items-center px-4 py-3 text-sm font-medium transition-colors border-b-2 ${
+                    active 
+                    ? 'border-yellow-500 text-slate-900 bg-slate-100' 
+                    : 'border-transparent text-slate-500 hover:text-slate-700 hover:bg-slate-50'
+                }`}
+            >
+                <span className="mr-2"><Icon /></span>
+                {label}
+            </button>
+        );
+
+        // --- Abas de Conteúdo ---
+
+        const Overview = () => (
+            <div className="space-y-6 animate-fade-in">
+                <div className="bg-gradient-to-r from-blue-900 to-slate-800 rounded-2xl p-8 text-white shadow-lg">
+                    <h2 className="text-3xl font-bold mb-4">Divisão de Manutenção e Evolução</h2>
+                    <p className="text-lg text-blue-100 max-w-3xl leading-relaxed">
+                        A DIMEX é o motor de engenharia do DEINF. Sua missão é dupla e paradoxal: garantir a 
+                        <span className="text-yellow-400 font-bold"> estabilidade absoluta (99.8% uptime)</span> dos sistemas críticos do SFN (STR, PIX) 
+                        enquanto executa a <span className="text-yellow-400 font-bold">modernização</span> da arquitetura legada.
+                    </p>
+                    <div className="mt-6 flex space-x-4">
+                        <div className="flex items-center bg-white/10 px-4 py-2 rounded-lg backdrop-blur-sm">
+                            <Icons.Activity />
+                            <span className="ml-2 text-sm font-bold">Operação Crítica 24/7</span>
+                        </div>
+                        <div className="flex items-center bg-white/10 px-4 py-2 rounded-lg backdrop-blur-sm">
+                            <Icons.Lock />
+                            <span className="ml-2 text-sm font-bold">Soberania de Dados</span>
+                        </div>
+                    </div>
+                </div>
+
+                <div className="grid md:grid-cols-3 gap-6">
+                    <div className="bg-white p-6 rounded-xl shadow-sm border border-slate-200">
+                        <h3 className="text-lg font-bold text-slate-800 mb-2 flex items-center">
+                            <span className="bg-blue-100 text-blue-700 p-2 rounded mr-2"><Icons.Database /></span>
+                            Governança (GEDAI)
+                        </h3>
+                        <p className="text-slate-600 text-sm">
+                            A DIMEX não decide "como" os dados são estruturados; ela segue os rígidos padrões definidos pela GEDAI (Gerência de Dados) para garantir integridade.
+                        </p>
+                    </div>
+                    <div className="bg-white p-6 rounded-xl shadow-sm border border-slate-200">
+                        <h3 className="text-lg font-bold text-slate-800 mb-2 flex items-center">
+                            <span className="bg-green-100 text-green-700 p-2 rounded mr-2"><Icons.Building /></span>
+                            Estratégia (VALOR)
+                        </h3>
+                        <p className="text-slate-600 text-sm">
+                            As demandas de negócio chegam através da unidade VALOR, que traduz necessidades de fiscalização e política monetária em requisitos de TI.
+                        </p>
+                    </div>
+                    <div className="bg-white p-6 rounded-xl shadow-sm border border-slate-200">
+                        <h3 className="text-lg font-bold text-slate-800 mb-2 flex items-center">
+                            <span className="bg-yellow-100 text-yellow-700 p-2 rounded mr-2"><Icons.Cpu /></span>
+                            Execução (DIMEX)
+                        </h3>
+                        <p className="text-slate-600 text-sm">
+                            A equipe "mão na massa". Responsável pelo código, testes, deploy e sustentação dos sistemas, tanto em Mainframe quanto em Cloud.
+                        </p>
+                    </div>
+                </div>
+            </div>
+        );
+
+        const StructureMap = () => {
+            const [selected, setSelected] = useState('DEINF');
+
+            const details = {
+                DEINF: {
+                    title: "DEINF - O Ecossistema",
+                    desc: "Departamento de Tecnologia da Informação. A estrutura guarda-chuva que orquestra a tecnologia do BC.",
+                    color: "bg-slate-800"
+                },
+                VALOR: {
+                    title: "Unidade VALOR",
+                    desc: "Focada em 'Entregar Valor'. É a ponte com o negócio. Define O QUE será feito.",
+                    leader: "André Bokel",
+                    color: "bg-green-600"
+                },
+                GEDAI: {
+                    title: "GEDAI - O Arquiteto",
+                    desc: "Gerência de Dados e Integração. Define COMO será feito. Estabelece padrões, modelos de dados e arquitetura.",
+                    leader: "Eduardo Weller",
+                    color: "bg-blue-600"
+                },
+                DIMEX: {
+                    title: "DIMEX - O Construtor",
+                    desc: "Divisão de Manutenção e Evolução. EXECUTA a visão. Codifica, mantém o legado e constrói o novo.",
+                    leader: "Equipes Técnicas",
+                    color: "bg-yellow-500"
+                }
+            };
+
+            return (
+                <div className="flex flex-col md:flex-row gap-6 animate-fade-in h-[500px]">
+                    {/* Diagrama Interativo */}
+                    <div className="md:w-1/2 bg-slate-100 rounded-2xl p-8 relative flex flex-col justify-center items-center border border-slate-200">
+                        <p className="absolute top-4 left-4 text-xs font-bold text-slate-400 uppercase tracking-widest">Organograma Funcional</p>
+                        
+                        {/* DEINF Box */}
+                        <div 
+                            onClick={() => setSelected('DEINF')}
+                            className={`w-full max-w-sm p-4 rounded-lg mb-8 cursor-pointer transition-all border-2 border-dashed border-slate-400 hover:bg-slate-200 ${selected === 'DEINF' ? 'ring-2 ring-slate-800' : ''}`}
+                        >
+                            <div className="text-center font-bold text-slate-600">DEINF (Departamento)</div>
+                        </div>
+
+                        {/* The Triad */}
+                        <div className="grid grid-cols-2 gap-4 w-full max-w-sm relative">
+                            {/* Linhas de conexão (simuladas com CSS) */}
+                            <div className="absolute inset-0 flex justify-center items-center -z-10">
+                                <div className="w-px h-full bg-slate-300"></div>
+                                <div className="h-px w-full bg-slate-300 absolute"></div>
+                            </div>
+
+                            <div 
+                                onClick={() => setSelected('VALOR')}
+                                className={`bg-white p-4 rounded-lg shadow-md cursor-pointer hover:scale-105 transition-transform border-t-4 border-green-500 ${selected === 'VALOR' ? 'ring-2 ring-green-500' : ''}`}
+                            >
+                                <div className="font-bold text-slate-800">VALOR</div>
+                                <div className="text-xs text-slate-500">Negócio & Estratégia</div>
+                            </div>
+
+                            <div 
+                                onClick={() => setSelected('GEDAI')}
+                                className={`bg-white p-4 rounded-lg shadow-md cursor-pointer hover:scale-105 transition-transform border-t-4 border-blue-600 ${selected === 'GEDAI' ? 'ring-2 ring-blue-600' : ''}`}
+                            >
+                                <div className="font-bold text-slate-800">GEDAI</div>
+                                <div className="text-xs text-slate-500">Dados & Padrões</div>
+                            </div>
+
+                            <div 
+                                onClick={() => setSelected('DIMEX')}
+                                className="col-span-2 mx-auto w-1/2 bg-white p-4 rounded-lg shadow-md cursor-pointer hover:scale-105 transition-transform border-t-4 border-yellow-500 mt-4"
+                            >
+                                <div className="text-center font-bold text-slate-800">DIMEX</div>
+                                <div className="text-center text-xs text-slate-500">Engenharia</div>
+                            </div>
+                        </div>
+                    </div>
+
+                    {/* Detalhes */}
+                    <div className="md:w-1/2 flex flex-col justify-center">
+                        <div className="bg-white p-8 rounded-2xl shadow-lg border border-slate-100 h-full">
+                            <div className={`inline-block px-3 py-1 rounded text-white text-xs font-bold mb-4 ${details[selected].color}`}>
+                                {selected}
+                            </div>
+                            <h3 className="text-2xl font-bold text-slate-800 mb-4">{details[selected].title}</h3>
+                            <p className="text-slate-600 text-lg leading-relaxed mb-6">
+                                {details[selected].desc}
+                            </p>
+                            {details[selected].leader && (
+                                <div className="mt-auto pt-6 border-t border-slate-100">
+                                    <span className="text-xs text-slate-400 uppercase font-bold">Liderança / Referência</span>
+                                    <div className="text-slate-800 font-medium mt-1">{details[selected].leader}</div>
+                                </div>
+                            )}
+                        </div>
+                    </div>
+                </div>
+            );
+        };
+
+        const TechRadar = () => {
+            const stacks = [
+                { name: "Mainframe & COBOL", type: "legacy", status: "Mantendo", desc: "Núcleo transacional antigo. Alta estabilidade." },
+                { name: "Java EE (Struts)", type: "legacy", status: "Migrando", desc: "Sistemas corporativos dos anos 2000." },
+                { name: "Quarkus (Java)", type: "modern", status: "Adotando", desc: "Microsserviços leves, baixo consumo de memória." },
+                { name: "Event-Driven (Kafka)", type: "modern", status: "Expandindo", desc: "Desacoplamento de sistemas críticos." },
+                { name: "Docker/K8s", type: "modern", status: "Padrão", desc: "Containerização para escalabilidade." }
+            ];
+
+            return (
+                <div className="space-y-6 animate-fade-in">
+                    <div className="grid md:grid-cols-2 gap-8">
+                        {/* Legado */}
+                        <div className="bg-slate-50 p-6 rounded-xl border border-slate-200">
+                            <h3 className="text-xl font-bold text-slate-700 mb-4 flex items-center">
+                                <span className="w-3 h-3 bg-slate-400 rounded-full mr-2"></span> O Legado
+                            </h3>
+                            <div className="space-y-3">
+                                {stacks.filter(s => s.type === 'legacy').map((item, idx) => (
+                                    <div key={idx} className="bg-white p-4 rounded border-l-4 border-slate-400 shadow-sm">
+                                        <div className="flex justify-between">
+                                            <span className="font-bold text-slate-800">{item.name}</span>
+                                            <span className="text-xs bg-slate-100 px-2 py-1 rounded text-slate-600">{item.status}</span>
+                                        </div>
+                                        <p className="text-xs text-slate-500 mt-1">{item.desc}</p>
+                                    </div>
+                                ))}
+                            </div>
+                        </div>
+
+                        {/* Moderno */}
+                        <div className="bg-blue-50 p-6 rounded-xl border border-blue-100">
+                            <h3 className="text-xl font-bold text-blue-700 mb-4 flex items-center">
+                                <span className="w-3 h-3 bg-blue-500 rounded-full mr-2"></span> O Novo
+                            </h3>
+                            <div className="space-y-3">
+                                {stacks.filter(s => s.type === 'modern').map((item, idx) => (
+                                    <div key={idx} className="bg-white p-4 rounded border-l-4 border-blue-500 shadow-sm">
+                                        <div className="flex justify-between">
+                                            <span className="font-bold text-slate-800">{item.name}</span>
+                                            <span className="text-xs bg-blue-100 px-2 py-1 rounded text-blue-800">{item.status}</span>
+                                        </div>
+                                        <p className="text-xs text-slate-500 mt-1">{item.desc}</p>
+                                    </div>
+                                ))}
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            );
+        };
+
+        const People = () => {
+            const leaders = [
+                {
+                    name: "Eduardo Weller",
+                    role: "Chefe da GEDAI",
+                    desc: "Liderança estratégica em Governança. Garante que a arquitetura de dados suporte a inovação sem perder o controle."
+                },
+                {
+                    name: "Cristiano Kliemann",
+                    role: "Senior Advisor / Fellow",
+                    desc: "Referência Técnica (Ex-Arquiteto Chefe). Estabeleceu os padrões de Clean Code e a visão de modernização do BC."
+                },
+                {
+                    name: "André Bokel",
+                    role: "Chefe da Unidade VALOR",
+                    desc: "Foco no Negócio. Responsável por alinhar os projetos de TI com as necessidades estratégicas do Banco."
+                }
+            ];
+
+            return (
+                <div className="grid md:grid-cols-3 gap-6 animate-fade-in">
+                    {leaders.map((leader, idx) => (
+                        <div key={idx} className="bg-white p-6 rounded-xl shadow-sm border border-slate-100 hover:shadow-md transition-shadow">
+                            <div className="w-12 h-12 bg-slate-100 rounded-full flex items-center justify-center text-slate-500 font-bold mb-4 text-xl">
+                                {leader.name.charAt(0)}
+                            </div>
+                            <h3 className="font-bold text-lg text-slate-900">{leader.name}</h3>
+                            <p className="text-blue-600 text-sm font-medium mb-3">{leader.role}</p>
+                            <p className="text-slate-600 text-sm">{leader.desc}</p>
+                        </div>
+                    ))}
+                </div>
+            );
+        };
+
+        const Workflow = () => {
+            const steps = [
+                "Demanda (VALOR)",
+                "Arquitetura (GEDAI)",
+                "Desenvolvimento (DIMEX)",
+                "Homologação (QA)",
+                "Produção (Sustentação)"
+            ];
+
+            return (
+                <div className="py-8 animate-fade-in">
+                    <div className="relative">
+                        <div className="absolute left-6 top-0 bottom-0 w-0.5 bg-slate-200"></div>
+                        <div className="space-y-8">
+                            {steps.map((step, idx) => (
+                                <div key={idx} className="relative flex items-center">
+                                    <div className="w-12 h-12 rounded-full bg-white border-4 border-slate-100 flex items-center justify-center z-10 text-slate-400 font-bold shadow-sm">
+                                        {idx + 1}
+                                    </div>
+                                    <div className="ml-6 bg-white p-4 rounded-lg border border-slate-200 shadow-sm flex-1">
+                                        <span className="font-bold text-slate-800">{step}</span>
+                                    </div>
+                                </div>
+                            ))}
+                        </div>
+                    </div>
+                </div>
+            );
+        };
+
+        const App = () => {
+            const [activeTab, setActiveTab] = useState('overview');
+
+            return (
+                <div className="min-h-screen flex flex-col">
+                    {/* Header */}
+                    <header className="bg-slate-900 text-white shadow-lg sticky top-0 z-50">
+                        <div className="container mx-auto px-4">
+                            <div className="flex justify-between items-center h-16">
+                                <div className="flex items-center space-x-3">
+                                    <div className="bg-yellow-500 p-1.5 rounded text-slate-900">
+                                        <Icons.Building />
+                                    </div>
+                                    <div>
+                                        <h1 className="text-xl font-bold tracking-tight">DIMEX <span className="text-slate-400 font-light">| Portal</span></h1>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        {/* Tab Navigation */}
+                        <div className="bg-white border-b border-slate-200">
+                            <div className="container mx-auto px-4 flex overflow-x-auto">
+                                <NavButton 
+                                    active={activeTab === 'overview'} 
+                                    onClick={() => setActiveTab('overview')} 
+                                    icon={Icons.Activity} 
+                                    label="Visão Geral" 
+                                />
+                                <NavButton 
+                                    active={activeTab === 'structure'} 
+                                    onClick={() => setActiveTab('structure')} 
+                                    icon={Icons.Database} 
+                                    label="Estrutura & Mapa" 
+                                />
+                                <NavButton 
+                                    active={activeTab === 'tech'} 
+                                    onClick={() => setActiveTab('tech')} 
+                                    icon={Icons.Cpu} 
+                                    label="Tecnologia" 
+                                />
+                                <NavButton 
+                                    active={activeTab === 'people'} 
+                                    onClick={() => setActiveTab('people')} 
+                                    icon={Icons.Users} 
+                                    label="Liderança" 
+                                />
+                                <NavButton 
+                                    active={activeTab === 'workflow'} 
+                                    onClick={() => setActiveTab('workflow')} 
+                                    icon={Icons.GitMerge} 
+                                    label="Fluxos" 
+                                />
+                            </div>
+                        </div>
+                    </header>
+
+                    {/* Main Content */}
+                    <main className="flex-1 container mx-auto px-4 py-8 max-w-5xl">
+                        {activeTab === 'overview' && <Overview />}
+                        {activeTab === 'structure' && <StructureMap />}
+                        {activeTab === 'tech' && <TechRadar />}
+                        {activeTab === 'people' && <People />}
+                        {activeTab === 'workflow' && <Workflow />}
+                    </main>
+
+                    {/* Footer */}
+                    <footer className="bg-white border-t border-slate-200 py-6 text-center text-slate-500 text-sm">
+                        <p>© 2026 DEINF - Departamento de Tecnologia da Informação do Banco Central.</p>
+                        <p className="mt-1 text-xs">Informações baseadas no PDTI 2020-2025 e estrutura pública organizacional.</p>
+                    </footer>
+                </div>
+            );
+        };
+
+        const root = ReactDOM.createRoot(document.getElementById('root'));
+        root.render(<App />);
+    </script>
+</body>
+</html>
